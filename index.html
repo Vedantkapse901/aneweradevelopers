@@ -1173,8 +1173,13 @@
                                     type="number" id="setting-price-ac" class="w-full border p-2 rounded"></div>
                             <div><label class="block text-sm font-bold text-gray-600 mb-1">UPI ID</label><input
                                     type="text" id="setting-upi-id" class="w-full border p-2 rounded"></div>
-                            <div><label class="block text-sm font-bold text-gray-600 mb-1">QR Code Image</label><input
-                                    type="text" id="setting-qr-image" class="w-full border p-2 rounded"></div>
+                            <div>
+                                <label class="block text-sm font-bold text-gray-600 mb-1">Upload QR Code Image</label>
+                                <input type="file" id="setting-qr-upload" accept="image/*"
+                                    class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-blue file:text-white hover:file:bg-blue-700">
+                                <p class="text-xs text-gray-500 mt-1">Current: <span
+                                        id="current-qr-name">Default/Uploaded</span></p>
+                            </div>
                             <button onclick="saveAdminSettings()"
                                 class="w-full bg-gray-800 text-white py-2 rounded font-bold hover:bg-black text-sm">Save
                                 Changes</button>
@@ -1263,8 +1268,9 @@
             { id: 4, type: 'image', url: 'https://images.unsplash.com/photo-1460472178825-e5240623afd5?auto=format&fit=crop&q=80&w=400', caption: 'Planning Office' }
         ];
 
-        // Site Visit Settings (Default values)
-        let siteSettings = {
+        // Site Visit Settings (Load from LocalStorage)
+        let storedSettings = JSON.parse(localStorage.getItem('siteSettings'));
+        let siteSettings = storedSettings || {
             priceSleeper: 1500,
             priceAC: 2500,
             upiId: 'naikwadebhushan-3@okaxis',
@@ -1520,7 +1526,7 @@
             document.getElementById('setting-price-sleeper').value = siteSettings.priceSleeper;
             document.getElementById('setting-price-ac').value = siteSettings.priceAC;
             document.getElementById('setting-upi-id').value = siteSettings.upiId;
-            document.getElementById('setting-qr-image').value = siteSettings.qrImage;
+            // Removed direct value set for file input as it's not supported
 
             // Calculate Report Stats
             const currentMonth = new Date().getMonth();
@@ -1569,14 +1575,32 @@
         }
 
         function saveAdminSettings() {
-            siteSettings.priceSleeper = document.getElementById('setting-price-sleeper').value;
-            siteSettings.priceAC = document.getElementById('setting-price-ac').value;
-            siteSettings.upiId = document.getElementById('setting-upi-id').value;
-            siteSettings.qrImage = document.getElementById('setting-qr-image').value;
+            const fileInput = document.getElementById('setting-qr-upload');
 
-            updateSiteVisitUI();
-            document.getElementById('adminSettingsModal').classList.add('hidden');
-            alert('Settings Saved!');
+            // Helper to save rest
+            const saveRest = () => {
+                siteSettings.priceSleeper = document.getElementById('setting-price-sleeper').value;
+                siteSettings.priceAC = document.getElementById('setting-price-ac').value;
+                siteSettings.upiId = document.getElementById('setting-upi-id').value;
+
+                // Save to LocalStorage
+                localStorage.setItem('siteSettings', JSON.stringify(siteSettings));
+
+                updateSiteVisitUI();
+                document.getElementById('adminSettingsModal').classList.add('hidden');
+                alert('Settings Saved!');
+            };
+
+            if (fileInput.files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    siteSettings.qrImage = e.target.result; // Base64
+                    saveRest();
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                saveRest();
+            }
         }
 
         function generateMonthlyReport() {
